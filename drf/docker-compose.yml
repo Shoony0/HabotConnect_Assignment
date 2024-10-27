@@ -1,0 +1,48 @@
+# My version of docker = 18.09.4-ce
+# Compose file format supported till version 18.06.0+ is 3.7
+version: "3.7"
+
+services:
+  mysql_server:
+    image: mysql:5.7
+    restart: always
+    container_name: mysql_server
+    environment:
+      MYSQL_DATABASE: 'test_db'
+      MYSQL_USER: 'test_user'
+      MYSQL_PASSWORD: 'test_password123'
+      MYSQL_ROOT_PASSWORD: 'test_password123'
+    volumes:
+      - type: bind
+        source: ../mysql_data
+        target: /var/lib/mysql
+    networks:
+      - drf_assignment_network
+
+  django:
+    build: .
+    restart: always
+    container_name: django
+    depends_on:
+      - mysql_server
+    ports:
+      - 800:8000
+    command:
+      - sh
+      - -c
+      - |
+        python manage.py makemigrations
+        python manage.py migrate
+        python manage.py runserver 0.0.0.0:8000 --noreload
+    healthcheck:
+      test: ["CMD", "mysql", "-h", "mysql_server", "-u", "test_user", "-ptest_password123", "-e", "SELECT 1"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - drf_assignment_network
+
+
+networks:
+  drf_assignment_network:
+    driver: bridge
+
